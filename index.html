@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang=en>
+
+<head>
+    <meta charset=utf-8>
+    <title>{{.Name}}</title>
+    <style>
+        html {
+            background-color: #ffffea;
+        }
+        body {
+            margin: 50px;
+            font-family: sans-serif;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid gray;
+            max-width: 25px;
+            margin: 35px auto;
+        }
+
+        a,
+        a:visited {
+            color: inherit;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 10px;
+        }
+
+        td {
+            white-space: nowrap;
+            display: table-cell;
+            vertical-align: inherit;
+        }
+
+        td:nth-child(1) {
+            width: 80%;
+        }
+
+        td:nth-child(2) {
+            width: 10%;
+        }
+
+        td:last-child {
+            width: 10%;
+        }
+
+        #container {
+            max-width: 700px;
+            margin: auto;
+            object-fit: cover;
+        }
+
+        video {
+            height: 100%;
+            width: 100%;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            html {
+                background-color: black;
+                color: #dfdfdf;
+            }
+
+            article img:not([src$=".jpg"]):not([src$=".jpeg"]) {
+                background-color: white;
+                border: 5px solid white;
+                box-sizing: border-box;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <a href="./?dl=zip">Download zip</a>
+        <a href="./?dl=targz">Download tar.gz</a>
+        <table id="file-listing">
+            <tr>
+                <th>Name</td>
+                <th>Size</td>
+                <th>Modified</td>
+            </tr>
+            {{if not .Root}}
+            <tr>
+                <td><a href="/..">../</a></td>
+                <td>&mdash;</td>
+                <td>&mdash;</td>
+            </tr>
+            {{end}}
+            {{range .Files}}
+            <tr class="file">
+                <td class="name"><a href="./{{.Name}}{{if .IsDir}}/{{end}}">{{.Name}}{{if .IsDir}}/{{end}}</a></td>
+                <td class="size">{{if .IsDir}}&mdash;{{else}}{{HumanizeBytes .Size}}{{end}}</td>
+                <td class="modtime">{{.ModTime.UTC.Format "2006-01-02 15:04:05"}}</td>
+            </tr>
+            {{end}}
+        </table>
+        <hr>
+        {{with .ReadMe}}
+        <article>
+            {{.}}
+        </article>
+        {{end}}
+    </div>
+</body>
+</html>
