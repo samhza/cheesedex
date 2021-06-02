@@ -73,10 +73,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if dl := r.URL.Query().Get("dl"); dl != "" {
+			_, dirname := path.Split(basepath)
 			switch dl {
 			case "targz":
+				w.Header().Set("Content-Disposition", "attachment; filename="+dirname+".tar.gz")
 				err = archiveTarGZ(p, w)
 			case "zip":
+				w.Header().Set("Content-Disposition", "attachment; filename="+dirname+".zip")
 				err = archiveZIP(p, w)
 			default:
 				http.Error(w, "dl must be one of 'targz', 'zip'", http.StatusBadRequest)
