@@ -134,10 +134,10 @@ td .name {
             {{end}}
             {{range .Files}}
             <tr>
-                <td><a href="./{{.Name}}{{if .IsDir}}/{{end}}">
+                <td><a href="./{{.Name}}{{if .GoesToDir}}/{{end}}">
                     <svg width="1.5em" height="1em" version="1.1" viewBox="0 0 265 323"><use xlink:href="#{{.IconName}}"></use></svg>
-                    <span class="name">{{- .Name}}{{if .IsDir}}/{{end}}</span></a></td>
-                <td>{{if .IsDir}}&mdash;{{else}}{{HumanizeBytes .Size}}{{end}}</td>
+                    <span class="name">{{- .Name}}{{if .GoesToDir}}/{{end}}</span></a></td>
+                <td>{{if .GoesToDir}}&mdash;{{else}}{{HumanizeBytes .Size}}{{end}}</td>
                 <td>{{.ModTime.UTC.Format "2006-01-02 15:04:05"}}</td>
             </tr>
             {{end}}

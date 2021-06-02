@@ -226,6 +226,10 @@ func (f FileInfo) IconName() string {
 	}
 }
 
+func (f FileInfo) GoesToDir() bool {
+	return f.mode().IsDir()
+}
+
 func (f FileInfo) mode() fs.FileMode {
 	if f.Mode().Type() == fs.ModeSymlink {
 		return f.TargetMode
