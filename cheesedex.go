@@ -74,6 +74,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		if dl := r.URL.Query().Get("dl"); dl != "" {
 			_, dirname := path.Split(basepath)
+			if dirname == "" {
+				dirname = "root"
+			}
 			switch dl {
 			case "targz":
 				w.Header().Set("Content-Disposition", "attachment; filename="+dirname+".tar.gz")
