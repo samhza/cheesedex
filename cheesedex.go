@@ -285,6 +285,13 @@ func (d *IndexContext) Populate(files []fs.FileInfo, fpath string, root string) 
 			}
 			escaped := template.HTML("<pre>" + html.EscapeString(string(p)) + "</pre>")
 			d.ReadMe = &escaped
+		case "readme.html":
+			p, err := os.ReadFile(path.Join(root, fpath, finfo.Name()))
+			if err != nil {
+				return err
+			}
+			escaped := template.HTML(p)
+			d.ReadMe = &escaped
 		case "readme.md":
 			p, err := os.ReadFile(path.Join(root, fpath, finfo.Name()))
 			if err != nil {
