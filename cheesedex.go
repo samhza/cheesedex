@@ -53,11 +53,6 @@ type Server struct {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed),
-			http.StatusMethodNotAllowed)
-		return
-	}
 	basepath := path.Clean(r.URL.Path)
 	p := path.Join(s.dir, basepath)
 	file, err := os.Open(p)
@@ -72,6 +67,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if stat.IsDir() {
+		if r.Method != http.MethodGet {
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed),
+				http.StatusMethodNotAllowed)
+			return
+		}
 		if dl := r.URL.Query().Get("dl"); dl != "" {
 			switch dl {
 			case "targz":
