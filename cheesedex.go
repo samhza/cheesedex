@@ -72,28 +72,42 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if stat.IsDir() {
-		dl := r.URL.Query().Get("dl")
-		if dl == "targz" {
-			archiveTarGZ(p, w)
-			if err != nil {
-				log.Fatalln(err)
+		if dl := r.URL.Query().Get("dl"); dl != "" {
+			switch dl {
+			case "targz":
+				err = archiveTarGZ(p, w)
+			case "zip":
+				err = archiveZIP(p, w)
+			default:
+				http.Error(w, "dl must be one of 'targz', 'zip'", http.StatusBadRequest)
+				return
 			}
-			return
-		} else if dl == "zip" {
-			err := archiveZIP(p, w)
 			if err != nil {
-				log.Fatalln(err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 			return
 		}
-		dir := new(IndexContext)
-		err := dir.Populate(file, basepath, s.dir)
+		files, err := file.Readdir(0)
 		if err != nil {
-			log.Fatalln(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		for _, file := range files {
+			if file.Name() == "index.html" {
+				http.ServeFile(w, r, path.Join(p, "index.html"))
+				return
+			}
+		}
+		dir := new(IndexContext)
+		err = dir.Populate(files, basepath, s.dir)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		err = indexTmpl.Execute(w, dir)
 		if err != nil {
-			log.Fatalln(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		return
 	}
@@ -219,11 +233,7 @@ func (f FileInfo) mode() fs.FileMode {
 	return f.Mode()
 }
 
-func (d *IndexContext) Populate(f *os.File, fpath string, root string) error {
-	files, err := f.Readdir(0)
-	if err != nil {
-		return err
-	}
+func (d *IndexContext) Populate(files []fs.FileInfo, fpath string, root string) error {
 	d.Files = make([]FileInfo, len(files))
 	for i, f := range files {
 		d.Files[i] = FileInfo{f, 0}
@@ -235,11 +245,7 @@ func (d *IndexContext) Populate(f *os.File, fpath string, root string) error {
 			d.Files[i].TargetMode = stat.Mode()
 		}
 	}
-	stat, err := f.Stat()
-	if err != nil {
-		return err
-	}
-	d.Name = stat.Name()
+	_, d.Name = path.Split(fpath)
 	sort.Slice(d.Files, func(i, j int) bool {
 		var im, jm fs.FileMode = d.Files[i].mode(), d.Files[j].mode()
 		if im.IsDir() == jm.IsDir() {
