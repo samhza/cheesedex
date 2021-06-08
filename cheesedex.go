@@ -72,6 +72,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				http.StatusMethodNotAllowed)
 			return
 		}
+		if len(r.URL.Path) < 1 || r.URL.Path[len(r.URL.Path)-1] != '/' {
+			http.Redirect(w, r, r.URL.Path+"/", http.StatusTemporaryRedirect)
+			return
+		}
 		if dl := r.URL.Query().Get("dl"); dl != "" {
 			_, dirname := path.Split(basepath)
 			if dirname == "" {
