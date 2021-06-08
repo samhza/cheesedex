@@ -53,6 +53,13 @@ type Server struct {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead:
+	default:
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed),
+			http.StatusMethodNotAllowed)
+		return
+	}
 	basepath := path.Clean(r.URL.Path)
 	p := path.Join(s.dir, basepath)
 	file, err := os.Open(p)
