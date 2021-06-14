@@ -14,9 +14,9 @@
 
         hr {
             border: none;
-            border-top: 1px solid gray;
-            max-width: 25px;
-            margin: 35px auto;
+            border-top: 1px solid black;
+            max-width: 600px;
+            margin: 10px auto;
         }
 
         a,
@@ -25,6 +25,8 @@
         }
         table {
             width: 100%;
+            border-top: 1px solid black;
+            border-bottom: 1px solid black;
             border-collapse: collapse;
         }
         th, td {
@@ -117,7 +119,6 @@ td .name {
         <header>
             {{range .Crumbs}}<a href="./{{.Link}}">{{.Text}}/</a>{{end}}
         </header>
-        <span>Download <a href="./?dl=zip">.zip</a> or <a href="./?dl=targz">.tar.gz</a></span>
         <table id="file-listing">
             <tr>
                 <th>Name</td>
@@ -142,8 +143,9 @@ td .name {
             </tr>
             {{end}}
         </table>
-        <hr>
+        <span>Download <a href="./?dl=zip">.zip</a> or <a href="./?dl=targz">.tar.gz</a></span>
         {{with .ReadMe}}
+        <hr>
         <article>
             {{.}}
         </article>
