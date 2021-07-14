@@ -1,0 +1,16 @@
+{{ template "header.html" . }}
+<header>
+    Search results for "{{.Query}}" in {{range Crumbs .Path}}<a href="./{{.Link}}">{{.Text}}/</a>{{end}}
+</header>
+{{ template "searchbar.html" }}
+<table id="file-listing">
+    <tr>
+        <th>Name</td>
+        <th>Size</td>
+        <th>Modified</td>
+    </tr>
+    {{range .Results}}
+    {{template "file.html" .}}
+    {{end}}
+</table>
+{{ template "footer.html" . }}

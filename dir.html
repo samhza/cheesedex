@@ -1,0 +1,31 @@
+{{ template "header.html" . }}
+<header>
+    {{range Crumbs .Path}}<a href="./{{.Link}}">{{.Text}}/</a>{{end}}
+</header>
+{{ template "searchbar.html" }}
+<table id="file-listing">
+    <tr>
+        <th>Name</td>
+        <th>Size</td>
+        <th>Modified</td>
+    </tr>
+    {{if not .Root}}
+    <tr>
+        <td><a href="./..">
+                <span class="name">../</span></a></td>
+        <td>&mdash;</td>
+        <td>&mdash;</td>
+    </tr>
+    {{end}}
+    {{range .Files}}
+    {{template "file.html" .}}
+    {{end}}
+</table>
+<span>Download <a href="./?dl=zip">.zip</a> or <a href="./?dl=targz">.tar.gz</a></span>
+{{with .ReadMe}}
+<hr>
+<article>
+    {{.}}
+</article>
+{{end}}
+{{ template "footer.html" . }}

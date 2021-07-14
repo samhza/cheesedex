@@ -4,7 +4,9 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
+	"embed"
 	_ "embed"
+	"errors"
 	"flag"
 	"html"
 	"html/template"
@@ -14,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -23,16 +26,19 @@ import (
 	mdhtml "github.com/yuin/goldmark/renderer/html"
 )
 
-//go:embed index.html
-var indexHTML string
-var indexTmpl *template.Template
+//go:embed *.html
+var tmplHtml embed.FS
+var tmpl *template.Template
 
 func init() {
-	indexTmpl = template.New("")
-	indexTmpl.Funcs(template.FuncMap{"HumanizeBytes": func(size int64) string {
-		return humanize.Bytes(uint64(size))
-	}})
-	_, err := indexTmpl.Parse(indexHTML)
+	tmpl = template.New("")
+	tmpl.Funcs(template.FuncMap{
+		"HumanizeBytes": func(size int64) string {
+			return humanize.Bytes(uint64(size))
+		},
+		"Crumbs": Crumbs,
+	})
+	_, err := tmpl.ParseFS(tmplHtml, "*")
 	if err != nil {
 		panic(err)
 	}
@@ -60,9 +66,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.StatusMethodNotAllowed)
 		return
 	}
-	basepath := path.Clean(r.URL.Path)
-	p := path.Join(s.dir, basepath)
-	file, err := os.Open(p)
+	relpath := path.Clean(r.URL.Path)
+	file, err := os.Open(path.Join(s.dir, relpath))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -74,63 +79,151 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if stat.IsDir() {
-		if r.Method != http.MethodGet {
-			http.Error(w, http.StatusText(http.StatusMethodNotAllowed),
-				http.StatusMethodNotAllowed)
+		if query := r.URL.Query().Get("q"); query != "" {
+			isregexp := r.URL.Query().Get("regexp") == "on"
+			s.handleSearch(w, relpath, query, isregexp)
 			return
 		}
-		if len(r.URL.Path) < 1 || r.URL.Path[len(r.URL.Path)-1] != '/' {
-			http.Redirect(w, r, r.URL.Path+"/", http.StatusTemporaryRedirect)
-			return
-		}
-		if dl := r.URL.Query().Get("dl"); dl != "" {
-			_, dirname := path.Split(basepath)
-			if dirname == "" {
-				dirname = "root"
-			}
-			switch dl {
-			case "targz":
-				w.Header().Set("Content-Disposition", "attachment; filename="+dirname+".tar.gz")
-				err = archiveTarGZ(p, w)
-			case "zip":
-				w.Header().Set("Content-Disposition", "attachment; filename="+dirname+".zip")
-				err = archiveZIP(p, w)
-			default:
-				http.Error(w, "dl must be one of 'targz', 'zip'", http.StatusBadRequest)
-				return
-			}
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
-			return
-		}
-		files, err := file.Readdir(0)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		for _, file := range files {
-			if file.Name() == "index.html" {
-				http.ServeFile(w, r, path.Join(p, "index.html"))
-				return
-			}
-		}
-		dir := new(IndexContext)
-		err = dir.Populate(files, basepath, s.dir)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		err = indexTmpl.Execute(w, dir)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		s.handleDir(r, w, file, relpath)
 		return
 	}
 	http.ServeContent(w, r, stat.Name(), stat.ModTime(), file)
 }
 
+type SearchContext struct {
+	Name    string
+	Path    string
+	Query   string
+	Results <-chan FileInfo
+}
+
+func (s *Server) handleSearch(w http.ResponseWriter,
+	relpath, query string, isregexp bool) {
+	var exp *regexp.Regexp
+	if isregexp {
+		var err error
+		exp, err = regexp.Compile(query)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+	results := make(chan FileInfo)
+	fn := func(fpath string, d fs.DirEntry, err error) error {
+		switch {
+		case errors.Is(err, os.ErrPermission):
+		case err == nil:
+		default:
+			return err
+		}
+		if fpath == "." {
+			return nil
+		}
+		var matched bool
+		if exp != nil {
+			matched = exp.MatchString(fpath)
+		} else {
+			matched = strings.Contains(fpath, query)
+		}
+		if !matched {
+			return nil
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		var finfo FileInfo
+		finfo.PopulateFrom(path.Join(s.dir, relpath, fpath), info)
+		finfo.path = fpath
+		results <- finfo
+		return nil
+	}
+	go func() {
+		err := fs.WalkDir(os.DirFS(path.Join(s.dir, relpath)), ".", fn)
+		if err != nil {
+			log.Println("error encountered searching:", err)
+		}
+		close(results)
+	}()
+	ctx := SearchContext{
+		Name:    query,
+		Path:    relpath,
+		Query:   query,
+		Results: results,
+	}
+	err := tmpl.ExecuteTemplate(w, "search.html", ctx)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+}
+
+type IndexContext struct {
+	Name   string
+	Path   string
+	Files  []FileInfo
+	ReadMe *template.HTML
+	Root   bool
+}
+
+// handleDir display's a directory's file index, or returns an archive
+func (s *Server) handleDir(r *http.Request, w http.ResponseWriter,
+	file *os.File, relpath string) {
+	if r.Method != http.MethodGet {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed),
+			http.StatusMethodNotAllowed)
+		return
+	}
+	if len(r.URL.Path) < 1 || r.URL.Path[len(r.URL.Path)-1] != '/' {
+		http.Redirect(w, r, r.URL.Path+"/", http.StatusTemporaryRedirect)
+		return
+	}
+	var err error
+	if dl := r.URL.Query().Get("dl"); dl != "" {
+		_, dirname := path.Split(relpath)
+		if dirname == "" {
+			dirname = "root"
+		}
+		switch dl {
+		case "targz":
+			w.Header().Set("Content-Disposition", "attachment; filename="+dirname+".tar.gz")
+			err = archiveTarGZ(path.Join(s.dir, relpath), w)
+		case "zip":
+			w.Header().Set("Content-Disposition", "attachment; filename="+dirname+".zip")
+			err = archiveZIP(path.Join(s.dir, relpath), w)
+		default:
+			http.Error(w, "dl must be one of 'targz', 'zip'", http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+	files, err := file.Readdir(0)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	for _, file := range files {
+		if file.Name() == "index.html" {
+			http.ServeFile(w, r, path.Join(s.dir, relpath, "index.html"))
+			return
+		}
+	}
+	dir := new(IndexContext)
+	err = dir.Populate(files, relpath, s.dir)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = tmpl.ExecuteTemplate(w, "dir.html", dir)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// archiveZIP writes a zip archive of root to wr.
 func archiveZIP(root string, wr io.Writer) error {
 	w := zip.NewWriter(wr)
 	fsys := os.DirFS(root)
@@ -168,6 +261,7 @@ func archiveZIP(root string, wr io.Writer) error {
 	return w.Close()
 }
 
+// archiveTarGZ writes a gzipped tar archive of root to wr.
 func archiveTarGZ(root string, wr io.Writer) error {
 	zw := gzip.NewWriter(wr)
 	w := tar.NewWriter(zw)
@@ -176,7 +270,7 @@ func archiveTarGZ(root string, wr io.Writer) error {
 		if err != nil {
 			return err
 		}
-		if d.Type() != 0 {
+		if !d.Type().IsRegular() {
 			return nil
 		}
 		f, err := fsys.Open(fpath)
@@ -210,23 +304,17 @@ func archiveTarGZ(root string, wr io.Writer) error {
 	return zw.Close()
 }
 
-type IndexContext struct {
-	Name   string
-	Path   string
-	Files  []FileInfo
-	Crumbs []Crumb
-	ReadMe *template.HTML
-	Root   bool
-	Icon   string
-}
-
 type FileInfo struct {
 	fs.FileInfo
+	path       string
 	TargetMode fs.FileMode
 }
 
-type Crumb struct {
-	Link, Text string
+func (f FileInfo) RelPath() string {
+	if f.path != "" {
+		return f.path
+	}
+	return f.Name()
 }
 
 func (f FileInfo) IconName() string {
@@ -242,7 +330,6 @@ func (f FileInfo) IconName() string {
 		return "file"
 	}
 }
-
 func (f FileInfo) GoesToDir() bool {
 	return f.mode().IsDir()
 }
@@ -254,19 +341,43 @@ func (f FileInfo) mode() fs.FileMode {
 	return f.Mode()
 }
 
-func (d *IndexContext) Populate(files []fs.FileInfo, fpath string, root string) error {
+func (f *FileInfo) PopulateFrom(fpath string, i fs.FileInfo) error {
+	f.FileInfo = i
+	if f.Mode().Type() == fs.ModeSymlink {
+		stat, err := os.Stat(fpath)
+		if err != nil {
+			return err
+		}
+		f.TargetMode = stat.Mode()
+	}
+	return nil
+}
+
+type Crumb struct {
+	Link, Text string
+}
+
+func Crumbs(dirpath string) []Crumb {
+	split := strings.Split(dirpath, "/")
+	if split[len(split)-1] == "" {
+		split = split[:len(split)-1]
+	}
+	crumbs := make([]Crumb, len(split))
+	for i := range crumbs {
+		segment := split[i]
+		crumbs[i] = Crumb{strings.Repeat("../", len(crumbs)-i-1), segment}
+	}
+	return crumbs
+}
+
+func (d *IndexContext) Populate(
+	files []fs.FileInfo, dirpath, root string) error {
 	d.Files = make([]FileInfo, len(files))
 	for i, f := range files {
-		d.Files[i] = FileInfo{f, 0}
-		if f.Mode().Type() == fs.ModeSymlink {
-			stat, err := os.Stat(path.Join(root, fpath, f.Name()))
-			if err != nil {
-				continue
-			}
-			d.Files[i].TargetMode = stat.Mode()
-		}
+		d.Files[i].PopulateFrom(
+			path.Join(root, dirpath, f.Name()), f)
 	}
-	_, d.Name = path.Split(fpath)
+	_, d.Name = path.Split(dirpath)
 	sort.Slice(d.Files, func(i, j int) bool {
 		var im, jm fs.FileMode = d.Files[i].mode(), d.Files[j].mode()
 		if im.IsDir() == jm.IsDir() {
@@ -278,39 +389,29 @@ func (d *IndexContext) Populate(files []fs.FileInfo, fpath string, root string) 
 		return false
 	})
 
-	d.Path = fpath
-	if fpath == "/" {
+	d.Path = dirpath
+	if dirpath == "/" {
 		d.Root = true
-	}
-
-	split := strings.Split(fpath, "/")
-	if split[len(split)-1] == "" {
-		split = split[:len(split)-1]
-	}
-	d.Crumbs = make([]Crumb, len(split))
-	for i := range d.Crumbs {
-		segment := split[i]
-		d.Crumbs[i] = Crumb{strings.Repeat("../", len(d.Crumbs)-i-1), segment}
 	}
 
 	for _, finfo := range d.Files {
 		switch strings.ToLower(finfo.Name()) {
 		case "readme.txt":
-			p, err := os.ReadFile(path.Join(root, fpath, finfo.Name()))
+			p, err := os.ReadFile(path.Join(root, dirpath, finfo.Name()))
 			if err != nil {
 				return err
 			}
 			escaped := template.HTML("<pre>" + html.EscapeString(string(p)) + "</pre>")
 			d.ReadMe = &escaped
 		case "readme.html":
-			p, err := os.ReadFile(path.Join(root, fpath, finfo.Name()))
+			p, err := os.ReadFile(path.Join(root, dirpath, finfo.Name()))
 			if err != nil {
 				return err
 			}
 			escaped := template.HTML(p)
 			d.ReadMe = &escaped
 		case "readme.md":
-			p, err := os.ReadFile(path.Join(root, fpath, finfo.Name()))
+			p, err := os.ReadFile(path.Join(root, dirpath, finfo.Name()))
 			if err != nil {
 				return err
 			}

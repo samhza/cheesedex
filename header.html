@@ -55,6 +55,12 @@ td .name {
 	white-space: pre-wrap;
     margin-left: 1.75em;
 }
+.banner {
+    width: 300px;
+    display: block;
+    padding: 10px 0px;
+    margin: auto;
+}
 
 
         #container {
@@ -116,40 +122,3 @@ td .name {
         </defs>
     </svg>
     <div id="container">
-        <header>
-            {{range .Crumbs}}<a href="./{{.Link}}">{{.Text}}/</a>{{end}}
-        </header>
-        <table id="file-listing">
-            <tr>
-                <th>Name</td>
-                <th>Size</td>
-                <th>Modified</td>
-            </tr>
-            {{if not .Root}}
-            <tr>
-                <td><a href="./..">
-                    <span class="name">../</span></a></td>
-                <td>&mdash;</td>
-                <td>&mdash;</td>
-            </tr>
-            {{end}}
-            {{range .Files}}
-            <tr>
-                <td><a href="./{{.Name}}{{if .GoesToDir}}/{{end}}">
-                    <svg width="1.5em" height="1em" version="1.1" viewBox="0 0 265 323"><use xlink:href="#{{.IconName}}"></use></svg>
-                    <span class="name">{{- .Name}}{{if .GoesToDir}}/{{end}}</span></a></td>
-                <td>{{if .GoesToDir}}&mdash;{{else}}{{HumanizeBytes .Size}}{{end}}</td>
-                <td>{{.ModTime.UTC.Format "2006-01-02 15:04:05"}}</td>
-            </tr>
-            {{end}}
-        </table>
-        <span>Download <a href="./?dl=zip">.zip</a> or <a href="./?dl=targz">.tar.gz</a></span>
-        {{with .ReadMe}}
-        <hr>
-        <article>
-            {{.}}
-        </article>
-        {{end}}
-    </div>
-</body>
-</html>
