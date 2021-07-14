@@ -5,7 +5,6 @@ import (
 	"archive/zip"
 	"compress/gzip"
 	"embed"
-	_ "embed"
 	"errors"
 	"flag"
 	"html"
