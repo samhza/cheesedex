@@ -29,7 +29,11 @@ func walkDir(name string, d fs.DirEntry, visited map[string]struct{}, walkDirFn 
 			if err != nil {
 				return false
 			} else {
-				realname = path.Join(name, link)
+				if path.IsAbs(link) {
+					realname = link
+				} else {
+					realname = path.Join(name, link)
+				}
 				_, ok := visited[realname]
 				if ok {
 					return false
