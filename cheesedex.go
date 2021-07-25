@@ -138,7 +138,7 @@ func (s *Server) handleSearch(w http.ResponseWriter,
 		return nil
 	}
 	go func() {
-		err := fs.WalkDir(os.DirFS(path.Join(s.dir, relpath)), ".", fn)
+		err := WalkDir(path.Join(s.dir, relpath), fn)
 		if err != nil {
 			log.Println("error encountered searching:", err)
 		}
