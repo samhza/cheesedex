@@ -6,7 +6,9 @@ import (
 	"path"
 )
 
-func WalkDir(root string, fn walkDirFunc) error {
+type WalkDirFunc func(path string, info func() (fs.FileInfo, error), err error) error
+
+func WalkDir(root string, fn WalkDirFunc) error {
 	visited := make(map[string]struct{})
 	info, err := os.Stat(root)
 	if err != nil {
@@ -17,8 +19,9 @@ func WalkDir(root string, fn walkDirFunc) error {
 	return err
 }
 
-func walkDir(name string, d fs.DirEntry, visited map[string]struct{}, walkDirFn walkDirFunc) error {
+func walkDir(name string, d fs.DirEntry, visited map[string]struct{}, fn WalkDirFunc) error {
 	realname := name
+	var stat fs.FileInfo
 	willwalk := func() bool {
 		if d.IsDir() {
 			_, ok := visited[name]
@@ -28,33 +31,43 @@ func walkDir(name string, d fs.DirEntry, visited map[string]struct{}, walkDirFn 
 			link, err := os.Readlink(name)
 			if err != nil {
 				return false
+			}
+			if path.IsAbs(link) {
+				realname = link
 			} else {
-				if path.IsAbs(link) {
-					realname = link
-				} else {
-					realname = path.Join(name, link)
-				}
-				_, ok := visited[realname]
-				if ok {
-					return false
-				}
-				if finfo, err := os.Stat(realname); err != nil {
-					return false
-				} else {
-					return finfo.IsDir()
-				}
+				realname = path.Join(name, link)
+			}
+			_, ok := visited[realname]
+			if ok {
+				return false
+			}
+			if finfo, err := os.Stat(realname); err != nil {
+				return false
+			} else {
+				return finfo.IsDir()
 			}
 		}
 		return false
 	}
-	if err := walkDirFn(name, d, nil); err != nil || !willwalk() {
+	getinfo := func() (fs.FileInfo, error) {
+		if stat != nil {
+			return stat, nil
+		}
+		var err error
+		stat, err = os.Stat(name)
+		return stat, err
+	}
+	if err := fn(name, getinfo, nil); err != nil || !willwalk() {
+		if err == fs.SkipDir && stat.IsDir() {
+			err = nil
+		}
 		return err
 	}
 	visited[realname] = struct{}{}
 
 	dirs, err := os.ReadDir(name)
 	if err != nil {
-		err = walkDirFn(name, d, err)
+		err = fn(name, d.Info, err)
 		if err != nil {
 			return err
 		}
@@ -62,7 +75,10 @@ func walkDir(name string, d fs.DirEntry, visited map[string]struct{}, walkDirFn 
 
 	for _, d1 := range dirs {
 		name1 := path.Join(name, d1.Name())
-		if err := walkDir(name1, d1, visited, walkDirFn); err != nil {
+		if err := walkDir(name1, d1, visited, fn); err != nil {
+			if err == fs.SkipDir {
+				break
+			}
 			return err
 		}
 	}

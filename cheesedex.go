@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -106,34 +107,42 @@ func (s *Server) handleSearch(w http.ResponseWriter,
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+	} else {
+		query = strings.ToLower(query)
 	}
 	results := make(chan FileInfo)
-	fn := func(fpath string, d fs.DirEntry, err error) error {
+	basepath := path.Join(s.dir, relpath)
+	fn := func(fpath string, getinfo func() (fs.FileInfo, error), err error) error {
 		switch {
 		case errors.Is(err, os.ErrPermission):
 		case err == nil:
 		default:
 			return err
 		}
-		if fpath == "." {
+		name, err := filepath.Rel(basepath, fpath)
+		if err != nil {
+			panic("impossible")
+		}
+		if name == "." {
 			return nil
 		}
 		var matched bool
 		if exp != nil {
 			matched = exp.MatchString(fpath)
 		} else {
-			matched = strings.Contains(fpath, query)
+			_, name := path.Split(name)
+			matched = strings.Contains(name, query)
 		}
 		if !matched {
 			return nil
 		}
-		info, err := d.Info()
+		info, err := getinfo()
 		if err != nil {
 			return err
 		}
 		var finfo FileInfo
-		finfo.PopulateFrom(path.Join(s.dir, relpath, fpath), info)
-		finfo.path = fpath
+		finfo.PopulateFrom(fpath, info)
+		finfo.path = name
 		results <- finfo
 		return nil
 	}
