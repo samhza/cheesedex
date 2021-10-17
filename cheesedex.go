@@ -3,15 +3,18 @@ package main
 import (
 	"archive/tar"
 	"archive/zip"
+	"bytes"
 	"compress/gzip"
 	"embed"
 	"errors"
 	"flag"
+	"fmt"
 	"html"
 	"html/template"
 	"io"
 	"io/fs"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"path"
@@ -67,6 +70,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.StatusMethodNotAllowed)
 		return
 	}
+	if dir := r.URL.Query().Get("dir"); dir != "" {
+		http.Redirect(w, r, "/"+dir, http.StatusTemporaryRedirect)
+		return
+	}
 	relpath := path.Clean(r.URL.Path)
 	file, err := os.Open(path.Join(s.dir, relpath))
 	if err != nil {
@@ -96,6 +103,7 @@ type SearchContext struct {
 	Path    string
 	Query   string
 	Results <-chan FileInfo
+	Banner  *Banner
 }
 
 func (s *Server) handleSearch(w http.ResponseWriter,
@@ -161,7 +169,15 @@ func (s *Server) handleSearch(w http.ResponseWriter,
 		Query:   query,
 		Results: results,
 	}
-	err := tmpl.ExecuteTemplate(w, "search.html", ctx)
+	var err error
+	ctx.Banner, err = banner(path.Join(s.dir, "banners"))
+	if err != nil {
+		http.Error(w, "getting random banner: "+err.Error(),
+			http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpl.ExecuteTemplate(w, "search.html", ctx)
 	if err != nil {
 		log.Println(err)
 		return
@@ -174,6 +190,7 @@ type IndexContext struct {
 	Files  []FileInfo
 	ReadMe *template.HTML
 	Root   bool
+	Banner *Banner
 }
 
 // handleDir display's a directory's file index, or returns an archive
@@ -403,6 +420,11 @@ func (d *IndexContext) Populate(
 	if dirpath == "/" {
 		d.Root = true
 	}
+	var err error
+	d.Banner, err = banner(path.Join(root, "banners"))
+	if err != nil {
+		return fmt.Errorf("getting random banner: %w", err)
+	}
 
 	for _, finfo := range d.Files {
 		switch strings.ToLower(finfo.Name()) {
@@ -442,4 +464,41 @@ func (d *IndexContext) Populate(
 		break
 	}
 	return nil
+}
+
+type Banner struct {
+	ImageURL, Link string
+}
+
+func banner(path string) (*Banner, error) {
+	p, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("reading file: %w", err)
+	}
+	if len(p) == 0 {
+		return nil, fmt.Errorf("empty file")
+	}
+
+	banners := bytes.Split(p, []byte("\n"))
+	n := 0
+	for _, b := range banners {
+		if len(b) > 0 {
+			banners[n] = b
+			n++
+		}
+	}
+	if n == 0 {
+		return nil, fmt.Errorf("no banners specified")
+	}
+	banners = banners[:n]
+
+	b := banners[rand.Intn(len(banners))]
+	split := bytes.SplitN(b, []byte(" "), 2)
+	if len(split) != 2 {
+		return nil, fmt.Errorf("invalid file")
+	}
+	var banner Banner
+	banner.ImageURL = string(split[0])
+	banner.Link = string(split[1])
+	return &banner, nil
 }

@@ -122,3 +122,6 @@ td .name {
         </defs>
     </svg>
     <div id="container">
+        {{with .Banner}}
+        <a href="{{.Link}}"><img class="banner" src="{{.ImageURL}}"></a>
+        {{end}}
