@@ -1,4 +1,4 @@
-package main
+package walk
 
 import (
 	"io/fs"
@@ -84,8 +84,6 @@ func walkDir(name string, d fs.DirEntry, visited map[string]struct{}, fn WalkDir
 	}
 	return nil
 }
-
-type walkDirFunc func(path string, d fs.DirEntry, err error) error
 
 type statDirEntry struct {
 	info fs.FileInfo

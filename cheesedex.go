@@ -24,6 +24,7 @@ import (
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	mdhtml "github.com/yuin/goldmark/renderer/html"
+	"go.samhza.com/cheesedex/internal/walk"
 )
 
 //go:embed *.html
@@ -147,7 +148,7 @@ func (s *Server) handleSearch(w http.ResponseWriter,
 		return nil
 	}
 	go func() {
-		err := WalkDir(path.Join(s.dir, relpath), fn)
+		err := walk.WalkDir(path.Join(s.dir, relpath), fn)
 		if err != nil {
 			log.Println("error encountered searching:", err)
 		}
