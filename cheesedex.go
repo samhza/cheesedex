@@ -101,6 +101,7 @@ type SearchContext struct {
 func (s *Server) handleSearch(w http.ResponseWriter,
 	relpath, query string, isregexp bool) {
 	var exp *regexp.Regexp
+	var lowerq string
 	if isregexp {
 		var err error
 		exp, err = regexp.Compile(query)
@@ -109,7 +110,7 @@ func (s *Server) handleSearch(w http.ResponseWriter,
 			return
 		}
 	} else {
-		query = strings.ToLower(query)
+		lowerq = strings.ToLower(query)
 	}
 	results := make(chan FileInfo)
 	basepath := path.Join(s.dir, relpath)
@@ -132,7 +133,7 @@ func (s *Server) handleSearch(w http.ResponseWriter,
 			matched = exp.MatchString(fpath)
 		} else {
 			_, name := path.Split(name)
-			matched = strings.Contains(name, query)
+			matched = strings.Contains(strings.ToLower(name), lowerq)
 		}
 		if !matched {
 			return nil
