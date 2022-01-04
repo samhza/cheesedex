@@ -1,4 +1,4 @@
-module go.samhza.com/cheesedex
+module samhza.com/cheesedex
 
 go 1.16
 

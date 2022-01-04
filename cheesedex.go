@@ -24,7 +24,7 @@ import (
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	mdhtml "github.com/yuin/goldmark/renderer/html"
-	"go.samhza.com/cheesedex/internal/walk"
+	"samhza.com/cheesedex/internal/walk"
 )
 
 //go:embed *.html
