@@ -58,7 +58,7 @@ func walkDir(name string, d fs.DirEntry, visited map[string]struct{}, fn WalkDir
 		return stat, err
 	}
 	if err := fn(name, getinfo, nil); err != nil || !willwalk() {
-		if err == fs.SkipDir && stat.IsDir() {
+		if err == fs.SkipDir {
 			err = nil
 		}
 		return err
