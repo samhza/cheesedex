@@ -27,7 +27,7 @@ import (
 	"samhza.com/cheesedex/internal/walk"
 )
 
-//go:embed *.html
+//go:embed html/*.html
 var tmplHtml embed.FS
 var tmpl *template.Template
 
@@ -39,7 +39,7 @@ func init() {
 		},
 		"Crumbs": Crumbs,
 	})
-	_, err := tmpl.ParseFS(tmplHtml, "*")
+	_, err := tmpl.ParseFS(tmplHtml, "html/*")
 	if err != nil {
 		panic(err)
 	}
@@ -161,7 +161,7 @@ func (s *Server) handleSearch(w http.ResponseWriter,
 		Query:   query,
 		Results: results,
 	}
-	err := tmpl.ExecuteTemplate(w, "search.html", ctx)
+	err := tmpl.ExecuteTemplate(w, "html/search.html", ctx)
 	if err != nil {
 		log.Println(err)
 		return
