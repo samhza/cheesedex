@@ -161,7 +161,7 @@ func (s *Server) handleSearch(w http.ResponseWriter,
 		Query:   query,
 		Results: results,
 	}
-	err := tmpl.ExecuteTemplate(w, "html/search.html", ctx)
+	err := tmpl.ExecuteTemplate(w, "search.html", ctx)
 	if err != nil {
 		log.Println(err)
 		return
