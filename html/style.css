@@ -77,7 +77,7 @@ input {
 /* the body element */
 
 #container {
-    max-width: 700px;
+    max-width: 75rem;
     margin: auto;
 }
 
