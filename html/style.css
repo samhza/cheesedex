@@ -7,15 +7,15 @@ th, td {text-align: left;}
 
 hr {
     border: none;
-    border-top: 1px solid black;
+    border-top: 1px solid #dddda8;
     max-width: 600px;
     margin: 10px auto;
 }
 
 table {
     width: 100%;
-    border-top: 1px solid black;
-    border-bottom: 1px solid black;
+    border-top: 1px solid #dddda8;
+    border-bottom: 1px solid #dddda8;
     border-collapse: collapse;
 }
 
@@ -152,7 +152,7 @@ input {
         filter: invert();
     }
 
-    #regexp:checked + .searchtext {
+    #regexp:checked + .searchtext:before {
         color: white!important;
     }
 
@@ -161,12 +161,32 @@ input {
     }
 }
 
+
+/* dark mode */
+
 @media (prefers-color-scheme: dark) {
     html {
         background-color: black;
         color: #dfdfdf;
     }
 
+    hr {
+        border-top: 1px solid white;
+    }
+
+    table {
+        border-top: 1px solid white;
+        border-bottom: 1px solid white;
+    }
+
+    input, #regexp {
+        background: white!important;
+        box-shadow: none!important;
+    }
+
+    #regexp:checked {
+        background: gray!important;
+    }
     article img:not([src$=".jpg"]):not([src$=".jpeg"]) {
         background-color: white;
         border: 5px solid white;
