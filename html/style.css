@@ -101,12 +101,13 @@ input {
     .searchpair .searchtext {
         font-size: 0px;
         margin-right: 0px!important;
-    } 
+    }
+
     .searchpair .searchtext:before {
         content: ".*";
         font-size: initial!important;
         position: absolute; 
-        right: 13px; 
+        right: 16px; 
         top: -1px;
         z-index: 9999;
         pointer-events: none!important;
@@ -118,10 +119,11 @@ input {
     }
 
     #regexp, #submit {
-        height: 24px;
+        height: 26px!important;
         display: inline-block!important;
         user-select: none!important;
     }
+
 
     #regexp {
         /* litering this with !important causes many browsers to cut their shit and let us customize */
@@ -132,14 +134,15 @@ input {
         margin-left: 0!important;
 
         position: relative!important;
-        width: 24px!important;
-        height: 24px!important;
-        line-height: 24px!important;
+        width: 26px!important;
+        height: 26px!important;
+        line-height: 26px!important;
 
         text-align: center!important;
         background: #dddda8!important;
         display: inline-block!important;
-        
+
+
         vertical-align: middle!important;
         box-shadow: 
             inset 0px 1px 0 0 rgba(128,128,128,0.4),
