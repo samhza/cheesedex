@@ -1,6 +1,6 @@
 /* basic tags */
 
-*:not(code) {font-family: "Ubuntu", sans-serif!important;}
+*:not(code) {font-family: sans-serif!important;}
 html {background-color: #ffffea;}
 a,a:visited {color: inherit;}
 th, td {text-align: left;}
@@ -58,7 +58,6 @@ input {
     border: none!important;
     height: 24px!important;
     min-width: 24px!important;
-    outline: none!important;
 }
 
 input {
