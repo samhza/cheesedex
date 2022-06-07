@@ -221,8 +221,18 @@ func (s *Server) handleDir(r *http.Request, w http.ResponseWriter,
 			return
 		}
 	}
+	var hideHidden bool
+	if hquery := r.URL.Query().Get("hideHidden"); hquery != "" {
+		if(hquery == "false") {
+			hideHidden = false
+		} else {
+			hideHidden = true
+		}
+	} else {
+		hideHidden = true
+	}
 	dir := new(IndexContext)
-	err = dir.Populate(files, relpath, s.dir)
+	err = dir.Populate(files, relpath, s.dir, hideHidden)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -381,9 +391,19 @@ func Crumbs(dirpath string) []Crumb {
 }
 
 func (d *IndexContext) Populate(
-	files []fs.FileInfo, dirpath, root string) error {
-	d.Files = make([]FileInfo, len(files))
-	for i, f := range files {
+	files []fs.FileInfo, dirpath, root string, hideHidden bool) error {
+	var filesToConsider []fs.FileInfo
+	if(hideHidden) {
+		for _, f := range files {
+			if(f.Name()[0] != '.') {
+				filesToConsider = append(filesToConsider, f)
+			}
+		}
+	} else {
+		filesToConsider = files
+	}
+	d.Files = make([]FileInfo, len(filesToConsider))
+	for i, f := range filesToConsider {
 		d.Files[i].PopulateFrom(
 			path.Join(root, dirpath, f.Name()), f)
 	}
