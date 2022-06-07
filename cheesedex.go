@@ -27,7 +27,7 @@ import (
 	"samhza.com/cheesedex/internal/walk"
 )
 
-//go:embed *.html
+//go:embed html/*.html
 var tmplHtml embed.FS
 var tmpl *template.Template
 
@@ -39,7 +39,7 @@ func init() {
 		},
 		"Crumbs": Crumbs,
 	})
-	_, err := tmpl.ParseFS(tmplHtml, "*")
+	_, err := tmpl.ParseFS(tmplHtml, "html/*")
 	if err != nil {
 		panic(err)
 	}

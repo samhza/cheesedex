@@ -1,0 +1,411 @@
+diff --git a/.gitignore b/.gitignore
+index c85cb6c..393e582 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1 +1,2 @@
+-/cheesedex
+\ No newline at end of file
++/cheesedex
++conf.toml
+\ No newline at end of file
+diff --git a/cheesedex.go b/cheesedex.go
+index 4eb6ec3..fc6d58a 100644
+--- a/cheesedex.go
++++ b/cheesedex.go
+@@ -27,7 +27,7 @@ import (
+ 	"samhza.com/cheesedex/internal/walk"
+ )
+ 
+-//go:embed *.html
++//go:embed html/*.html
+ var tmplHtml embed.FS
+ var tmpl *template.Template
+ 
+@@ -39,7 +39,7 @@ func init() {
+ 		},
+ 		"Crumbs": Crumbs,
+ 	})
+-	_, err := tmpl.ParseFS(tmplHtml, "*")
++	_, err := tmpl.ParseFS(tmplHtml, "html/*")
+ 	if err != nil {
+ 		panic(err)
+ 	}
+diff --git a/conf.example.toml b/conf.example.toml
+new file mode 100644
+index 0000000..8e764b3
+--- /dev/null
++++ b/conf.example.toml
+@@ -0,0 +1,4 @@
++Address = 6060
++Directory = "."
++Token = ""
++GuildID = ""
+\ No newline at end of file
+diff --git a/dir.html b/html/dir.html
+similarity index 100%
+rename from dir.html
+rename to html/dir.html
+diff --git a/file.html b/html/file.html
+similarity index 100%
+rename from file.html
+rename to html/file.html
+diff --git a/footer.html b/html/footer.html
+similarity index 100%
+rename from footer.html
+rename to html/footer.html
+diff --git a/header.html b/html/header.html
+similarity index 82%
+rename from header.html
+rename to html/header.html
+index 422b8c3..3d3fef8 100644
+--- a/header.html
++++ b/html/header.html
+@@ -4,97 +4,19 @@
+ <head>
+     <meta charset=utf-8>
+     <title>{{.Name}}</title>
+-    <style>
+-        html {
+-            background-color: #ffffea;
+-        }
+-        body {
+-            font-family: sans-serif;
+-        }
+-
+-        hr {
+-            border: none;
+-            border-top: 1px solid black;
+-            max-width: 600px;
+-            margin: 10px auto;
+-        }
+-
+-        a,
+-        a:visited {
+-            color: inherit;
+-        }
+-        table {
+-            width: 100%;
+-            border-top: 1px solid black;
+-            border-bottom: 1px solid black;
+-            border-collapse: collapse;
+-        }
+-        th, td {
+-  text-align: left;
+-}
+-th:nth-child(1),
+-td:nth-child(1) {
+-    width: 80%;
+-}
+-th:nth-child(2),
+-td:nth-child(2),
+-th:nth-child(3),
+-td:nth-child(3) {
+-    width: 10%;
+-}
+-th, td {
+-    white-space: nowrap;
+-}
+-td svg {
+-	vertical-align: middle;
+-    position: absolute;
+-}
+-td .name {
+-    word-break: break-all;
+-	overflow-wrap: break-word;
+-	white-space: pre-wrap;
+-    margin-left: 1.75em;
+-}
+-.banner {
+-    width: 300px;
+-    display: block;
+-    padding: 10px 0px;
+-    margin: auto;
+-}
+-
+-
+-        #container {
+-            max-width: 700px;
+-            margin: auto;
+-        }
+-
+-        video {
+-            height: 100%;
+-            width: 100%;
+-        }
+-
+-        @media (prefers-color-scheme: dark) {
+-            html {
+-                background-color: black;
+-                color: #dfdfdf;
+-            }
+-
+-            article img:not([src$=".jpg"]):not([src$=".jpeg"]) {
+-                background-color: white;
+-                border: 5px solid white;
+-                box-sizing: border-box;
+-            }
+-        }
+-    </style>
++    <link rel="stylesheet" href="/html/style.css" type="text/css">
+ </head>
+ <body>
+     <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="0" width="0" style="position: absolute;">
+         <defs>
+             
++            <!--- FOLDER SVG --->
+             <g id="folder" fill-rule="nonzero" fill="none">
+                 <path d="M285.22 37.55h-142.6L110.9 0H31.7C14.25 0 0 16.9 0 37.55v75.1h316.92V75.1c0-20.65-14.26-37.55-31.7-37.55z" fill="#FFA000"/>
+                 <path d="M285.22 36H31.7C14.25 36 0 50.28 0 67.74v158.7c0 17.47 14.26 31.75 31.7 31.75H285.2c17.44 0 31.7-14.3 31.7-31.75V67.75c0-17.47-14.26-31.75-31.7-31.75z" fill="#FFCA28"/>
+             </g>
++            
++            <!--- FOLDER SHORTCUT SVG -->
+             <g id="folder-shortcut" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                 <g id="folder-shortcut-group" fill-rule="nonzero">
+                     <g id="folder-shortcut-shape">
+@@ -105,11 +27,13 @@ td .name {
+                 </g>
+             </g>
+ 
+-            
++            <!--- FILE SVG --->
+             <g id="file" stroke="#000" stroke-width="25" fill="#FFF" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round">
+                 <path d="M13 24.12v274.76c0 6.16 5.87 11.12 13.17 11.12H239c7.3 0 13.17-4.96 13.17-11.12V136.15S132.6 13 128.37 13H26.17C18.87 13 13 17.96 13 24.12z"/>
+                 <path d="M129.37 13L129 113.9c0 10.58 7.26 19.1 16.27 19.1H249L129.37 13z"/>
+             </g>
++
++            <!--- FILE SHORTCUT SVG --->
+             <g id="file-shortcut" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                 <g id="file-shortcut-group" transform="translate(13.000000, 13.000000)">
+                     <g id="file-shortcut-shape" stroke="#000000" stroke-width="25" fill="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+diff --git a/search.html b/html/search.html
+similarity index 100%
+rename from search.html
+rename to html/search.html
+diff --git a/html/searchbar.html b/html/searchbar.html
+new file mode 100644
+index 0000000..8b76b4d
+--- /dev/null
++++ b/html/searchbar.html
+@@ -0,0 +1,6 @@
++<form id="searchbar" method="get">
++    <span class="searchpair">
++        <input type="text" id="text" name="q" placeholder="Search"><input type="checkbox" id="regexp" name="regexp"><span style='margin-right: 16px;' class="searchtext">Use Regexp</span>
++    </span>
++    <input id="submit" type="submit" value="Search">
++</form>
+\ No newline at end of file
+diff --git a/html/style.css b/html/style.css
+new file mode 100644
+index 0000000..0728c37
+--- /dev/null
++++ b/html/style.css
+@@ -0,0 +1,195 @@
++/* basic tags */
++
++html {background-color: #ffffea;}
++body {font-family: sans-serif;}
++a,a:visited {color: inherit;}
++th, td {text-align: left;}
++
++hr {
++    border: none;
++    border-top: 1px solid #dddda8;
++    max-width: 600px;
++    margin: 10px auto;
++}
++
++table {
++    width: 100%;
++    border-top: 1px solid #dddda8;
++    border-bottom: 1px solid #dddda8;
++    border-collapse: collapse;
++}
++
++th:nth-child(1),
++td:nth-child(1) {
++    width: 80%;
++}
++
++th:nth-child(2),
++td:nth-child(2),
++th:nth-child(3),
++td:nth-child(3) {
++    width: 10%;
++}
++
++th, td {
++    white-space: nowrap;
++}
++
++td svg {
++    vertical-align: middle;
++    position: absolute;
++}
++
++td .name {
++    word-break: break-all;
++    overflow-wrap: break-word;
++    white-space: pre-wrap;
++    margin-left: 1.75em;
++}
++
++video {
++    height: 100%;
++    width: 100%;
++}
++
++input {
++    background: #dddda8!important;
++    color: black!important;
++    border: none!important;
++    height: 24px!important;
++    min-width: 24px!important;
++    outline: none!important;
++}
++
++input {
++    box-shadow: 
++        inset 1px 1px 0 0 rgba(128,128,128,0.4),
++        inset -1px -1px 0 0 rgba(0,0,0,0.4)!important;
++}
++
++.banner {
++    width: 300px;
++    display: block;
++    padding: 10px 0px;
++    margin: auto;
++}
++
++/* the body element */
++
++#container {
++    max-width: 700px;
++    margin: auto;
++}
++
++/* the search bar */
++
++#searchbar {position: relative; margin: 5px 0; line-height: 24px; display: inline-block;}
++#text {vertical-align: middle; margin: 0!important;}
++
++/* the regex button next to it */
++
++/*  wrapping this in @media disables it on older browsers like RetroZilla that don't support 
++    button styling. the site will look ugly anyways because svgs, box-shadows, etc. aren't 
++    supported and there's many oddities to account for but it's at least usable.
++*/
++
++@media {
++    .searchpair {
++        position: relative;
++    }
++
++    .searchpair .searchtext {
++        font-size: 0px;
++        margin-right: 0px!important;
++    } 
++    .searchpair .searchtext:before {
++        content: ".*";
++        font-size: initial!important;
++        position: absolute; 
++        right: 13px; 
++        top: -1px;
++        z-index: 9999;
++        pointer-events: none!important;
++        user-select: none!important;
++        -moz-user-select: none!important;
++        -webkit-user-select: none!important;
++        color: black!important;
++        display: inline-block;
++    }
++
++    #regexp, #submit {
++        height: 24px;
++        display: inline-block!important;
++        user-select: none!important;
++    }
++
++    #regexp {
++        /* litering this with !important causes many browsers to cut their shit and let us customize */
++        -webkit-appearance: none!important;
++        -moz-appearance: none!important;
++        appearance: none!important;
++
++        margin-left: 0!important;
++
++        position: relative!important;
++        width: 24px!important;
++        height: 24px!important;
++        line-height: 24px!important;
++
++        text-align: center!important;
++        background: #dddda8!important;
++        display: inline-block!important;
++        
++        vertical-align: middle!important;
++        box-shadow: 
++            inset 0px 1px 0 0 rgba(128,128,128,0.4),
++            inset -1px -1px 0 0 rgba(0,0,0,0.4)!important;
++
++        border: none!important;
++    }
++
++    #regexp:checked {
++        filter: invert();
++    }
++
++    #regexp:checked + .searchtext:before {
++        color: white!important;
++    }
++
++    #submit {
++        margin-left: 16px;
++    }
++}
++
++
++/* dark mode */
++
++@media (prefers-color-scheme: dark) {
++    html {
++        background-color: black;
++        color: #dfdfdf;
++    }
++
++    hr {
++        border-top: 1px solid white;
++    }
++
++    table {
++        border-top: 1px solid white;
++        border-bottom: 1px solid white;
++    }
++
++    input, #regexp {
++        background: white!important;
++        box-shadow: none!important;
++    }
++
++    #regexp:checked {
++        background: gray!important;
++    }
++    article img:not([src$=".jpg"]):not([src$=".jpeg"]) {
++        background-color: white;
++        border: 5px solid white;
++        box-sizing: border-box;
++    }
++}
+\ No newline at end of file
+diff --git a/searchbar.html b/searchbar.html
+deleted file mode 100644
+index b49c50d..0000000
+--- a/searchbar.html
++++ /dev/null
+@@ -1,6 +0,0 @@
+-<form method="get">
+-    <input type="text" name="q" placeholder="Search">
+-    <label for="regexp">regexp</label>
+-    <input type="checkbox" id="regexp" name="regexp" >
+-    <input type="submit">
+-</form>
+\ No newline at end of file

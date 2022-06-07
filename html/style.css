@@ -1,0 +1,193 @@
+/* basic tags */
+
+*:not(code) {font-family: sans-serif!important;}
+html {background-color: #ffffea;}
+a,a:visited {color: inherit;}
+th, td {text-align: left;}
+
+hr {
+    border: none;
+    border-top: 1px solid #dddda8;
+    max-width: 600px;
+    margin: 10px auto;
+}
+
+table {
+    width: 100%;
+    border-top: 1px solid #dddda8;
+    border-bottom: 1px solid #dddda8;
+    border-collapse: collapse;
+}
+
+th:nth-child(1),
+td:nth-child(1) {
+    width: 80%;
+}
+
+th:nth-child(2),
+td:nth-child(2),
+th:nth-child(3),
+td:nth-child(3) {
+    width: 10%;
+}
+
+th, td {
+    white-space: nowrap;
+}
+
+td svg {
+    vertical-align: middle;
+    position: absolute;
+}
+
+td .name {
+    word-break: break-all;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    margin-left: 1.75em;
+}
+
+video {
+    height: 100%;
+    width: 100%;
+}
+
+input {
+    background: #dddda8!important;
+    color: black!important;
+    border: none!important;
+    height: 24px!important;
+    min-width: 24px!important;
+}
+
+input {
+    box-shadow: 
+        inset 1px 1px 0 0 rgba(128,128,128,0.4),
+        inset -1px -1px 0 0 rgba(0,0,0,0.4)!important;
+}
+
+.banner {
+    width: 300px;
+    display: block;
+    padding: 10px 0px;
+    margin: auto;
+}
+
+/* the body element */
+
+#container {
+    max-width: 50rem;
+    margin: auto;
+}
+
+/* the search bar */
+
+#searchbar {position: relative; margin: 5px 0; line-height: 24px; display: inline-block;}
+#text {vertical-align: middle; margin: 0!important;}
+
+/* the regex button next to it */
+
+/*  wrapping this in @media disables it on older browsers like RetroZilla that don't support 
+    button styling. the site will look ugly anyways because svgs, box-shadows, etc. aren't 
+    supported and there's many oddities to account for but it's at least usable.
+*/
+
+@media {
+    .searchpair {
+        position: relative;
+    }
+
+    .searchpair .searchtext {
+        font-size: 0px;
+        margin-right: 0px!important;
+    }
+
+    .searchpair .searchtext:before {
+        content: ".*";
+        font-size: initial!important;
+        position: absolute; 
+        right: 16px; 
+        top: -1px;
+        z-index: 9999;
+        pointer-events: none!important;
+        user-select: none!important;
+        -moz-user-select: none!important;
+        -webkit-user-select: none!important;
+        color: black!important;
+        display: inline-block;
+    }
+
+    #regexp, #submit {
+        height: 26px!important;
+        display: inline-block!important;
+        user-select: none!important;
+    }
+
+
+    #regexp {
+        /* litering this with !important causes many browsers to cut their shit and let us customize */
+        -webkit-appearance: none!important;
+        -moz-appearance: none!important;
+        appearance: none!important;
+
+        margin-left: 0!important;
+
+        position: relative!important;
+        width: 26px!important;
+        height: 26px!important;
+        line-height: 26px!important;
+
+        text-align: center!important;
+        background: #dddda8!important;
+        display: inline-block!important;
+
+
+        vertical-align: middle!important;
+        box-shadow: 
+            inset 0px 1px 0 0 rgba(128,128,128,0.4),
+            inset -1px -1px 0 0 rgba(0,0,0,0.4)!important;
+
+        border: none!important;
+    }
+
+    #regexp:checked {
+        filter: invert();
+    }
+
+    #regexp:checked + .searchtext:before {
+        color: white!important;
+    }
+
+    #submit {
+        margin-left: 16px;
+    }
+}
+
+
+/* dark mode */
+
+@media (prefers-color-scheme: dark) {
+    html {
+        background-color: black;
+        color: #dfdfdf;
+    }
+
+    hr {
+        border-top: 1px solid white;
+    }
+
+    table {
+        border-top: 1px solid white;
+        border-bottom: 1px solid white;
+    }
+
+    input, #regexp {
+        background: #dddddd!important;
+    }
+
+    article img:not([src$=".jpg"]):not([src$=".jpeg"]) {
+        background-color: white;
+        border: 5px solid white;
+        box-sizing: border-box;
+    }
+}
