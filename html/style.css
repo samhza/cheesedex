@@ -183,13 +183,9 @@ input {
     }
 
     input, #regexp {
-        background: white!important;
-        box-shadow: none!important;
+        background: #dddddd!important;
     }
 
-    #regexp:checked {
-        background: gray!important;
-    }
     article img:not([src$=".jpg"]):not([src$=".jpeg"]) {
         background-color: white;
         border: 5px solid white;
