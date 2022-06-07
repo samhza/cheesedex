@@ -1,7 +1,7 @@
 /* basic tags */
 
+*:not(code) {font-family: "Ubuntu", sans-serif!important;}
 html {background-color: #ffffea;}
-body {font-family: sans-serif;}
 a,a:visited {color: inherit;}
 th, td {text-align: left;}
 
