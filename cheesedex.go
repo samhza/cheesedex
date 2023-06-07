@@ -172,9 +172,7 @@ func (s *Server) handleSearch(w http.ResponseWriter,
 	var err error
 	ctx.Banner, err = banner(path.Join(s.dir, "banners"))
 	if err != nil {
-		http.Error(w, "getting random banner: "+err.Error(),
-			http.StatusInternalServerError)
-		return
+		log.Println("getting random banner:", err.Error())
 	}
 
 	err = tmpl.ExecuteTemplate(w, "search.html", ctx)
@@ -423,7 +421,7 @@ func (d *IndexContext) Populate(
 	var err error
 	d.Banner, err = banner(path.Join(root, "banners"))
 	if err != nil {
-		return fmt.Errorf("getting random banner: %w", err)
+		log.Println("getting random banner:", err.Error())
 	}
 
 	for _, finfo := range d.Files {
