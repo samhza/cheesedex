@@ -342,6 +342,10 @@ func (f FileInfo) RelPath() string {
 	return f.Name()
 }
 
+func (f FileInfo) RelHREF() string {
+	return strings.ReplaceAll(f.RelPath(), "#", "%23")
+}
+
 func (f FileInfo) IconName() string {
 	switch f.Mode().Type() {
 	case fs.ModeDir:
